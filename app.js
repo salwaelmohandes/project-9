@@ -1,20 +1,18 @@
 'use strict';
 
-const { sequelize, models } = require('./models');
-// const { User, Course } = models;
-
 // load modules
 const express = require('express');
 const morgan = require('morgan');
 const routes = require('./routes');
 
-// variable to enable global error logging
-const enableGlobalErrorLogging = process.env.ENABLE_GLOBAL_ERROR_LOGGING === 'true';
+
+const { sequelize, models } = require('./models');
+// const { User, Course } = models;
+const Course = models;
+const User = models;
 
 // create the Express app
 const app = express();
-
-// const courses = require('./courses');
 
 // Setup request body JSON parsing.
 app.use(express.json());
@@ -35,9 +33,12 @@ console.log('Testing the connection to the database...');
     await sequelize.sync();
 
   } catch(error) {
-    console.log('Connection to the database failed!',error);
+    console.log('Connection to the database failed!', error);
   }
 })();
+
+// Variable to enable global error logging
+const enableGlobalErrorLogging = process.env.ENABLE_GLOBAL_ERROR_LOGGING === 'true';
 
 // setup a friendly greeting for the root route
 app.get('/', (req, res) => {
@@ -46,7 +47,7 @@ app.get('/', (req, res) => {
   });
 });
 
-// setup api routes 
+// Setup api routes 
 app.use('/api', routes);
 
 // app.get('/courses', async (req, res) => {
