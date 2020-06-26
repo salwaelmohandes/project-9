@@ -4,7 +4,8 @@ const express = require('express');
 const bcryptjs = require('bcryptjs');
 const auth = require('basic-auth');
 const { check, validationResult } = require('express-validator');
-const { models } = require('./models');
+// const { models } = require('./models');
+const { User, Course } = require('./models');
 
 // This array is used to keep track of user records as they are created.
 // const users = [];
@@ -18,7 +19,7 @@ const authenticateUser = async (req, res, next) => {
   // Parse the user's credentials from the Authorization header.
   const credentials = auth(req);
   try {
-  const users = await User.findAll();
+  const users = await models.User.findAll();
   } catch (err) {
   // If the user's credentials are available...
   if (credentials) {
@@ -59,22 +60,26 @@ const authenticateUser = async (req, res, next) => {
 
 // Route that returns the current authenticated user.
 router.get('/users', authenticateUser, async (req, res) => {
+  try {
   const user = req.currentUser;
 
   res.json({
-    // id:user.id,
+    id:user.id,
     // userId:user.userId,
     firstName: user.firstName,
     lastName: user.lastName,
     emailAddress: user.emailAddress,
     password:user.password,
-  });
+    });
+  } catch (err) {
+    res.json({message: err.message});
+  } 
 });
 
-// // Route that returns a list of users.
-// router.get('/users', (req, res) => {
-//   res.json(users);
-// });
+// Route that returns a list of users.
+router.get('/users', (req, res) => {
+  res.json(users);
+});
 
 // const firstNameValidationChain = check('firstName')
 //   .exists({ checkNull: true, checkFalsy: true })
@@ -97,26 +102,25 @@ router.post('/users', [
     .exists({ checkNull: true, checkFalsy: true })
     .withMessage('Please provide a value for "password"'),
 ], async (req, res) => {
+    try {
   // Attempt to get the validation result from the Request object.
-  const errors = validationResult(req);
-  const users = await User.create({
-    // id: req.body.id,
+  const users = await models.User.create({
+    id: req.body.id,
     // userId: req.body.userId,
     firstName: req.body.firstName,
     lastName: req.body.lastName,
     emailAddress: req.body.emailAddress,
     password: req.body.password,
   });
-
+  
+  const errors = validationResult(req);
   // // If there are validation errors...
   if (!errors.isEmpty()) {
       const errorMessages = errors.array().map(error => error.msg);
-
       // Return the validation errors to the client.
       return res.status(400).json({ errors: errorMessages });
   }
-      // } else {
-
+  
   // Get the user from the request body.
   const user = req.body;
   // const errors = [];
@@ -129,24 +133,43 @@ router.post('/users', [
 
   // Set the status to 201 Created and end the response.
   res.location('/');
-  res.status(201).end();
-  
+  res.status(201).end(); 
+
+  } catch (err) {
+    res.json({message: err.message});
+  } 
 });
 
 router.get('/courses', async (req, res) => {
+  try {
   const courses = await Course.findAll();
   console.log(courses);
   res.json(courses);
+  } catch (err) {
+    res.json({message: err.message});
+  }
 });
 
 router.get('/courses/:id', async (req, res) => {
+  try {
   const course = await Course.find(req.params.id);
   res.json(course);
+  } catch (err) {
+    res.json({message: err.message});
+  }
 });
 
-router.post('/courses', async(req, res) => {
-  const course = await Course.create({
-    // id: req.body.id,
+router.post('/courses', [
+  check("title")
+    .exists({ checkNull: true, checkFalsy: true })
+    .withMessage('Please provide "title"'),
+  check("description")
+    .exists({ checkNull: true, checkFalsy: true })
+    .withMessage('Please provide "description"'),
+  ], authenticateUser, async(req, res) => {
+  try {
+  const course = await models.Course.create({
+    id: req.body.id,
     title: req.body.title,
     description: req.body.description,
     estimatetime: req.body.estimatetime,
@@ -154,6 +177,40 @@ router.post('/courses', async(req, res) => {
   });
   res.location('/courses/:id')
   res.json(course);
+  } catch (err) {
+    res.json({message: err.message});
+  }
 });
+
+router.put('/courses/:id', [
+  check("title")
+    .exists({ checkNull: true, checkFalsy: true })
+    .withMessage('Please provide "title"'),
+  check("description")
+    .exists({ checkNull: true, checkFalsy: true })
+    .withMessage('Please provide "description"'),
+  ], authenticateUser, async(req, res) => {
+    try {
+      const course = await models.Course.update({
+        id: req.body.id,
+        title: req.body.title,
+        description: req.body.description,
+        estimatetime: req.body.estimatetime,
+        materialsNeeded: req.body.materialsNeeded,
+      });
+      res.json(course);
+      } catch (err) {
+        res.json({message: err.message});
+      }
+    });
+
+router.delete('/courses/:id', authenticateUser, async(req, res) => {
+    try {
+      const course = await models.Course.destroy;
+      res.json(course);
+      } catch (err) {
+        res.json({message: err.message});
+      }
+    });
 
 module.exports = router;
