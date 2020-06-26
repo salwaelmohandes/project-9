@@ -50,25 +50,6 @@ app.get('/', (req, res) => {
 // Setup api routes 
 app.use('/api', routes);
 
-// app.get('/courses', async (req, res) => {
-//   const courses = await courses.getCourses();
-//   res.json(courses);
-
-// });
-
-// app.get('/courses/:id', async (req, res) => {
-//   const course = await courses.getCourse(req.params.id);
-//   res.json(course);
-// });
-
-// app.post('/courses', async(req, res) => {
-//   const course = await courses.createCourse({
-//     course: req.body.course,
-//     // title: req.body.title
-//   });
-//   res.json(course);
-// });
-
 // send 404 if no other route matched
 app.use((req, res) => {
   res.status(404).json({

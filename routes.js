@@ -4,7 +4,7 @@ const express = require('express');
 const bcryptjs = require('bcryptjs');
 const auth = require('basic-auth');
 const { check, validationResult } = require('express-validator');
-// const { models } = require('./models');
+const { models } = require('./models');
 const { User, Course } = require('./models');
 
 // This array is used to keep track of user records as they are created.
@@ -20,7 +20,7 @@ const authenticateUser = async (req, res, next) => {
   const credentials = auth(req);
   try {
   const users = await models.User.findAll();
-  } catch (err) {
+  
   // If the user's credentials are available...
   if (credentials) {
     // Attempt to retrieve the user from the data store by their emailAddress (i.e. the user's "key" from the Authorization header).
@@ -51,11 +51,13 @@ const authenticateUser = async (req, res, next) => {
 
     // Return a response with a 401 Unauthorized HTTP status code.
     res.status(401).json({ message: 'Access Denied' });
-  } else {
-    // Or if user authentication succeeded... Call the next() method.
-    next();
-    }
+  // } else {
+    // Or if user authentication succeeded... Call the next() method.    
+    // next();
   }
+    } catch (err) {
+      next(err)
+  }  
 };
 
 // Route that returns the current authenticated user.
@@ -142,7 +144,7 @@ router.post('/users', [
 
 router.get('/courses', async (req, res) => {
   try {
-  const courses = await Course.findAll();
+  const courses = await models.Course.findAll();
   console.log(courses);
   res.json(courses);
   } catch (err) {
@@ -152,7 +154,7 @@ router.get('/courses', async (req, res) => {
 
 router.get('/courses/:id', async (req, res) => {
   try {
-  const course = await Course.find(req.params.id);
+  const course = await models.Course.findByPK(req.params.id);
   res.json(course);
   } catch (err) {
     res.json({message: err.message});
