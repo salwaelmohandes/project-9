@@ -1,28 +1,36 @@
 'use strict';
 
 const express = require('express');
+const router = express.Router();
+const { models } = require('./db');
+const { check, validationResult } = require('express-validator');
 const bcryptjs = require('bcryptjs');
 const auth = require('basic-auth');
-const { check, validationResult } = require('express-validator');
-const { models } = require('./models');
-const { User, Course } = require('./models');
+// const Course = require('../models').Course;
+// const User = require('./db/models').User;
+
+function asyncHandler(cb) {
+  return async (req, res, next) => {
+    try {
+      await cb(req, res, next);
+    } catch (err) {
+      next(err);
+      console.log(err);
+    }
+  };
+}
 
 // This array is used to keep track of user records as they are created.
-// const users = [];
-
-// Construct a router instance.
-const router = express.Router();
+const users = [];
 
 const authenticateUser = async (req, res, next) => {
   let message = null;
 
   // Parse the user's credentials from the Authorization header.
   const credentials = auth(req);
-  try {
-  const users = await models.User.findAll();
-  
   // If the user's credentials are available...
   if (credentials) {
+    const users = await models.User.findAll();
     // Attempt to retrieve the user from the data store by their emailAddress (i.e. the user's "key" from the Authorization header).
     const user = users.find(u => u.emailAddress === credentials.name);
     // If a user was successfully retrieved from the data store...
@@ -33,8 +41,7 @@ const authenticateUser = async (req, res, next) => {
       if (authenticated) {
         console.log(`Authentication successful for username: ${user.emailAddress}`);
         // Storing the retrieved user object on the request object so any middleware functions that follow this middleware function will have access to the user's information.
-        req.currentUser = user;
-      
+        req.currentUser = user;      
       } else {
         message = `Authentication failure for emailAddress: ${user.emailAddress}`;
       }
@@ -51,18 +58,14 @@ const authenticateUser = async (req, res, next) => {
 
     // Return a response with a 401 Unauthorized HTTP status code.
     res.status(401).json({ message: 'Access Denied' });
-  // } else {
+  } else {
     // Or if user authentication succeeded... Call the next() method.    
-    // next();
+    next();
   }
-    } catch (err) {
-      next(err)
-  }  
 };
 
 // Route that returns the current authenticated user.
-router.get('/users', authenticateUser, async (req, res) => {
-  try {
+router.get('/users', authenticateUser, asyncHandler(async (req, res) => {
   const user = req.currentUser;
 
   res.json({
@@ -71,21 +74,13 @@ router.get('/users', authenticateUser, async (req, res) => {
     firstName: user.firstName,
     lastName: user.lastName,
     emailAddress: user.emailAddress,
-    password:user.password,
     });
-  } catch (err) {
-    res.json({message: err.message});
-  } 
-});
+}));
 
-// Route that returns a list of users.
-router.get('/users', (req, res) => {
-  res.json(users);
-});
-
-// const firstNameValidationChain = check('firstName')
-//   .exists({ checkNull: true, checkFalsy: true })
-//   .withMessage('Please provide a value for "first name"');
+// // Route that returns a list of users.
+// router.get('/users', (req, res) => {
+//   res.json(users);
+// });
   
   // Route that creates a new user.
 router.post('/users', [
@@ -103,8 +98,7 @@ router.post('/users', [
   check('password')
     .exists({ checkNull: true, checkFalsy: true })
     .withMessage('Please provide a value for "password"'),
-], async (req, res) => {
-    try {
+], asyncHandler( async (req, res) => {
   // Attempt to get the validation result from the Request object.
   const users = await models.User.create({
     id: req.body.id,
@@ -122,7 +116,7 @@ router.post('/users', [
       // Return the validation errors to the client.
       return res.status(400).json({ errors: errorMessages });
   }
-  
+
   // Get the user from the request body.
   const user = req.body;
   // const errors = [];
@@ -135,31 +129,27 @@ router.post('/users', [
 
   // Set the status to 201 Created and end the response.
   res.location('/');
-  res.status(201).end(); 
+  res.status(201).end();  
+}));
 
-  } catch (err) {
-    res.json({message: err.message});
-  } 
-});
-
-router.get('/courses', async (req, res) => {
-  try {
+router.get('/courses', asyncHandler(async (req, res) => {
   const courses = await models.Course.findAll();
   console.log(courses);
+  if (courses) {
   res.json(courses);
-  } catch (err) {
+  } else {
     res.json({message: err.message});
   }
-});
+}));
 
-router.get('/courses/:id', async (req, res) => {
-  try {
+router.get('/courses/:id', asyncHandler(async (req, res) => {
   const course = await models.Course.findByPK(req.params.id);
-  res.json(course);
-  } catch (err) {
+  if (course) {
+    res.json(course);
+  } else {
     res.json({message: err.message});
-  }
-});
+  } 
+}));
 
 router.post('/courses', [
   check("title")
@@ -168,21 +158,17 @@ router.post('/courses', [
   check("description")
     .exists({ checkNull: true, checkFalsy: true })
     .withMessage('Please provide "description"'),
-  ], authenticateUser, async(req, res) => {
-  try {
+  ], authenticateUser, asyncHandler(async(req, res) => {
   const course = await models.Course.create({
-    id: req.body.id,
+    userId: req.body.userId,
     title: req.body.title,
     description: req.body.description,
     estimatetime: req.body.estimatetime,
     materialsNeeded: req.body.materialsNeeded,
   });
   res.location('/courses/:id')
-  res.json(course);
-  } catch (err) {
-    res.json({message: err.message});
-  }
-});
+  res.json(course).end();
+}));
 
 router.put('/courses/:id', [
   check("title")
@@ -191,8 +177,7 @@ router.put('/courses/:id', [
   check("description")
     .exists({ checkNull: true, checkFalsy: true })
     .withMessage('Please provide "description"'),
-  ], authenticateUser, async(req, res) => {
-    try {
+  ], authenticateUser, asyncHandler(async(req, res) => {
       const course = await models.Course.update({
         id: req.body.id,
         title: req.body.title,
@@ -201,18 +186,17 @@ router.put('/courses/:id', [
         materialsNeeded: req.body.materialsNeeded,
       });
       res.json(course);
-      } catch (err) {
-        res.json({message: err.message});
-      }
-    });
+    }));
 
-router.delete('/courses/:id', authenticateUser, async(req, res) => {
-    try {
-      const course = await models.Course.destroy;
-      res.json(course);
-      } catch (err) {
+router.delete('/courses/:id', authenticateUser, asyncHandler( async(req, res) => {
+      const course = await models.Course.findOne({where: { id: req.params.id }});
+      const user = req.currentUser;
+      if (Course){
+        await models.Course.destroy();
+      res.json(course).end();
+      } else {
         res.json({message: err.message});
       }
-    });
+    }));
 
 module.exports = router;

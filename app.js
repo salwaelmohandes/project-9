@@ -5,11 +5,10 @@ const express = require('express');
 const morgan = require('morgan');
 const routes = require('./routes');
 
-
-const { sequelize, models } = require('./models');
+const { sequelize, models } = require('./db');
 // const { User, Course } = models;
-const Course = models;
-const User = models;
+// let User = models;
+// let course = models;
 
 // create the Express app
 const app = express();
@@ -51,10 +50,12 @@ app.get('/', (req, res) => {
 app.use('/api', routes);
 
 // send 404 if no other route matched
-app.use((req, res) => {
-  res.status(404).json({
+app.use((req, res, next) => {
+  const err = new Error
+  err.status(404).json({
     message: 'Route Not Found',
   });
+  next(err)
 });
 
 // setup a global error handler
@@ -64,9 +65,10 @@ app.use((err, req, res, next) => {
   }
 
   res.status(err.status || 500).json({
+    error: {    
     message: err.message,
-    error: process.env.NODE_ENV === 'production' ? {} : err,
-    // error: {},
+    },
+    // error: process.env.NODE_ENV === 'production' ? {} : err,
   });
 });
 

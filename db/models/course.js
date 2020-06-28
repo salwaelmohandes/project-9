@@ -9,10 +9,10 @@ module.exports = (sequelize) => {
       type: Sequelize.INTEGER,
       primaryKey: true,
       autoIncrement: true, 
-    } ,
-    userId: {
-      type: Sequelize.INTEGER,
-      allowNull: false,   
+    // } ,
+    // userId: {
+    //   type: Sequelize.INTEGER,
+    //   allowNull: false,   
     },
     title: {
       type: Sequelize.STRING,
