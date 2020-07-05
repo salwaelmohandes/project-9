@@ -8,11 +8,7 @@ module.exports = (sequelize) => {
     id: {
       type: Sequelize.INTEGER,
       primaryKey: true,
-      autoIncrement: true, 
-    // } ,
-    // userId: {
-    //   type: Sequelize.INTEGER,
-    //   allowNull: false,   
+      autoIncrement: true,   
     },
     title: {
       type: Sequelize.STRING,
@@ -22,8 +18,8 @@ module.exports = (sequelize) => {
       type: Sequelize.TEXT,
       allowNull: false,
     },
-    estimatetime: {
-      type: Sequelize.STRING,
+    estimatedTime: {
+      type: Sequelize.INTEGER,
       allowNull: true,
     },
     materialsNeeded: {
@@ -35,8 +31,9 @@ module.exports = (sequelize) => {
   Course.associate = (models) => {
     // define associations
     Course.belongsTo(models.User, {
+      as: 'user', //alias
       foreignKey: {
-        fieldName: 'directorUserId',
+        fieldName: 'userId',
         allowNull: false,
       },
     }); 

@@ -5,10 +5,7 @@ const express = require('express');
 const morgan = require('morgan');
 const routes = require('./routes');
 
-const { sequelize, models } = require('./db');
-// const { User, Course } = models;
-// let User = models;
-// let course = models;
+const { sequelize } = require('./db');
 
 // create the Express app
 const app = express();
@@ -51,10 +48,8 @@ app.use('/api', routes);
 
 // send 404 if no other route matched
 app.use((req, res, next) => {
-  const err = new Error
-  err.status(404).json({
-    message: 'Route Not Found',
-  });
+  const err = new Error("Route Not Found");
+  err.status = 404;
   next(err)
 });
 
@@ -66,7 +61,7 @@ app.use((err, req, res, next) => {
 
   res.status(err.status || 500).json({
     error: {    
-    message: err.message,
+      message: err.message,
     },
     // error: process.env.NODE_ENV === 'production' ? {} : err,
   });

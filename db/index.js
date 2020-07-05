@@ -2,36 +2,42 @@
 
 const fs = require('fs');
 const path = require('path');
-const Sequelize = require('sequelize');
 const basename = path.basename(__filename);
-const env = process.env.NODE_ENV || 'development';
-const config = require(__dirname + '/../config/config.json')[env];
+const Sequelize = require('sequelize');
+
+// sequelize options
+const options = {
+  dialect: 'sqlite',
+  storage: 'fsjstd-restapi.db',
+};
+
+// create new sequelize instance
+const sequelize = new Sequelize(options);
+
 const models = {};
 
-let sequelize;
-if (config.use_env_variable) {
-  sequelize = new Sequelize(process.env[config.use_env_variable], config);
-} else {
-  sequelize = new Sequelize(config.database, config.emailAddress, config.password, config);
-}
-
+// Import all of the models.
 fs
-  .readdirSync(__dirname)
+  .readdirSync(path.join(__dirname, 'models'))
   .filter(file => {
     return (file.indexOf('.') !== 0) && (file !== basename) && (file.slice(-3) === '.js');
   })
-  .forEach(file => {
-    const model = sequelize['import'](path.join(__dirname, file));
+  .forEach((file) => {
+    console.info(`Importing database model from file: ${file}`);
+    const model = sequelize['import'](path.join(__dirname, 'models', file));    
     models[model.name] = model;
   });
 
-Object.keys(models).forEach(modelName => {
+// If available, call method to create associations.
+Object.keys(models).forEach((modelName) => {
   if (models[modelName].associate) {
+    console.info(`Configuring the associations for the ${modelName} model...`);
     models[modelName].associate(models);
   }
 });
 
-models.sequelize = sequelize;
-models.Sequelize = Sequelize;
-
-module.exports = models;
+module.exports = {
+  sequelize,
+  Sequelize,
+  models
+};
