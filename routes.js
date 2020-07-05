@@ -40,7 +40,6 @@ const authenticateUser = async (req, res, next) => {
       where: {emailAddress: credentials.name}
     });
     console.log(user);
-    // const user = users.find(u => u.emailAddress === credentials.name);
 
     // If a user was successfully retrieved from the data store...
     if (user) {
@@ -55,15 +54,15 @@ const authenticateUser = async (req, res, next) => {
         console.log(`Authentication successful for username: ${user.emailAddress}`);
         // Storing the retrieved user object on the request object so any middleware functions that follow this middleware function will have access to the user's information.
         req.currentUser = user;      
+        } else {
+          message = `Authentication failure for emailAddress: ${user.emailAddress}`;
+        }
       } else {
-        message = `Authentication failure for emailAddress: ${user.emailAddress}`;
+        message = `User not found for name: ${credentials.name}`;
       }
     } else {
-      message = `User not found for name: ${credentials.name}`;
+      message = 'Auth header not found';
     }
-  } else {
-    message = 'Auth header not found';
-  }
 
   // If user authentication failed...
   if (message) {
@@ -77,26 +76,26 @@ const authenticateUser = async (req, res, next) => {
   }
 };
 
+
 // Route that returns the current authenticated user.
 router.get('/users', 
   authenticateUser, 
   asyncHandler(async (req, res) => {
     const user = req.currentUser;
 
-    res.json({
-      id:user.id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      emailAddress: user.emailAddress,
+    if (user) {
+      res.json({
+        id:user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        emailAddress: user.emailAddress,
       });
+    } else {
+      res.json({message: err.message});
+    }
   })
-);
+);  
 
-// // Route that returns a list of users.
-// router.get('/users', (req, res) => {
-//   res.json(users);
-// });
-  
   // Route that creates a new user.
 router.post('/users', [
   check('firstName')
@@ -114,15 +113,6 @@ router.post('/users', [
     .exists({ checkNull: true, checkFalsy: true })
     .withMessage('Please provide a value for "password"'),
 ], asyncHandler( async (req, res) => {
-  // Attempt to get the validation result from the Request object.
-  const user = await models.User.create({
-    // id: req.body.id,
-    // userId: req.body.userId,
-    firstName: req.body.firstName,
-    lastName: req.body.lastName,
-    emailAddress: req.body.emailAddress,
-    password: req.body.password,
-  });
   
   const errors = validationResult(req);
   // // If there are validation errors...
@@ -132,15 +122,14 @@ router.post('/users', [
       return res.status(400).json({ errors: errorMessages });
   }
 
-  // Get the user from the request body.
-  // const user = req.body;
-  // const errors = [];
-
-  // Hash the new user's password.
-  user.password = bcryptjs.hashSync(user.password);
-
-  // Add the user to the `users` array.
-  // users.push(user);
+  // Attempt to get the validation result from the Request object.
+  // And hash the new user's password.
+  const user = await models.User.create({
+    firstName: req.body.firstName,
+    lastName: req.body.lastName,
+    emailAddress: req.body.emailAddress,
+    password: bcryptjs.hashSync(req.body.password),
+  });
 
   // Set the status to 201 Created and end the response.
   res.location('/');
@@ -205,7 +194,7 @@ router.post('/courses', [
     materialsNeeded: req.body.materialsNeeded,
   });
   res.location('/courses/:id')
-  res.json(course).end();
+  res.status(201).end();  
 }));
 
 router.put('/courses/:id', [
@@ -236,9 +225,9 @@ router.put('/courses/:id', [
       },
       { where: { id: req.params.id } }
       );
-      res.json(course).end();
+      res.status(201).end();  
     } else {
-    res.status(403).json("No course found");
+    res.status(403).json("User doesn't own the requested course");
     }
   }
 ));
@@ -250,9 +239,9 @@ router.delete('/courses/:id', authenticateUser, asyncHandler( async(req, res) =>
         await models.Course.destroy(
           { where: { id: req.params.id } }
         );
-      res.json(course).end();
+        res.status(201).end();  
       } else {
-        res.status(403).json("No course found");
+        res.status(403).json("User doesn't own the requested course");
       }
     }));
 
