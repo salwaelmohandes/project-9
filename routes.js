@@ -78,17 +78,19 @@ const authenticateUser = async (req, res, next) => {
 };
 
 // Route that returns the current authenticated user.
-router.get('/users', authenticateUser, asyncHandler(async (req, res) => {
-  const user = req.currentUser;
+router.get('/users', 
+  authenticateUser, 
+  asyncHandler(async (req, res) => {
+    const user = req.currentUser;
 
-  res.json({
-    id:user.id,
-    // userId:user.userId,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    emailAddress: user.emailAddress,
-    });
-}));
+    res.json({
+      id:user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      emailAddress: user.emailAddress,
+      });
+  })
+);
 
 // // Route that returns a list of users.
 // router.get('/users', (req, res) => {
@@ -146,8 +148,15 @@ router.post('/users', [
 }));
 
 router.get('/courses', asyncHandler(async (req, res) => {
-  const courses = await models.Course.findAll();
-  console.log(courses);
+  const courses = await models.Course.findAll({  
+  attributes: { exclude: ["createdAt", "updatedAt"] },
+      include: [{
+          model: models.User,
+          as: "user",
+          attributes: { exclude: ["createdAt", "updatedAt"] },
+        },
+      ],
+    });
   if (courses) {
   res.json(courses);
   } else {
@@ -156,7 +165,15 @@ router.get('/courses', asyncHandler(async (req, res) => {
 }));
 
 router.get('/courses/:id', asyncHandler(async (req, res) => {
-  const course = await models.Course.findOne();
+  const course = await models.Course.findOne({
+    attributes: { exclude: ["createdAt", "updatedAt"] },
+    include: [{
+        model: models.User,
+        as: "user",
+        attributes: { exclude: ["createdAt", "updatedAt"] },
+      },
+    ],
+  });
   if (course) {
     res.json(course);
   } else {
@@ -181,7 +198,7 @@ router.post('/courses', [
     }
 
   const course = await models.Course.create({
-    // userId: req.body.userId,
+    userId: req.body.userId,
     title: req.body.title,
     description: req.body.description,
     estimatedTime: req.body.estimatedTime,
@@ -207,12 +224,11 @@ router.put('/courses/:id', [
         return res.status(400).json({ errors: errorMessages });
     }
     const user = req.currentUser;
-    // const course = await models.Course.findOne({where: { userId : user.id }});
+    const course = await models.Course.findOne({where: { userId : user.id }});
     
-    // if (course) {
-    // if (course.userId === user.id) {
-       const course = await models.Course.update({
-        // userId: req.body.userId,
+    if (course.userId === user.id) {
+      const course = await models.Course.update({
+        userId: req.body.userId,
         title: req.body.title,
         description: req.body.description,
         estimatedTime: req.body.estimatedTime,
@@ -220,12 +236,12 @@ router.put('/courses/:id', [
       },
       { where: { id: req.params.id } }
       );
-
       res.json(course).end();
-    // }else {
-      res.status(403).json("No course found");
-    // }
-    }));
+    } else {
+    res.status(403).json("No course found");
+    }
+  }
+));
 
 router.delete('/courses/:id', authenticateUser, asyncHandler( async(req, res) => {
       const course = await models.Course.findOne({where: { id: req.params.id }});
