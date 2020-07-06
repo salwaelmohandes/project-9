@@ -124,7 +124,7 @@ router.post('/users', [
 
   // Attempt to get the validation result from the Request object.
   // And hash the new user's password.
-  const user = await models.User.create({
+  await User.create({
     firstName: req.body.firstName,
     lastName: req.body.lastName,
     emailAddress: req.body.emailAddress,
@@ -137,11 +137,11 @@ router.post('/users', [
 }));
 
 router.get('/courses', asyncHandler(async (req, res) => {
-  const courses = await models.Course.findAll({  
+  const courses = await Course.findAll({  
   attributes: { exclude: ["createdAt", "updatedAt"] },
       include: [{
-          model: models.User,
-          as: "user",
+          model: User,
+          as: "owner",
           attributes: { exclude: ["createdAt", "updatedAt", "password"] },
         },
       ],
@@ -154,17 +154,17 @@ router.get('/courses', asyncHandler(async (req, res) => {
 }));
 
 router.get('/courses/:id', asyncHandler(async (req, res) => {
-  const course = await models.Course.findByPK(req.params.id, {
+  const course = await Course.findByPk(req.params.id, {
     attributes: { exclude: ["createdAt", "updatedAt"] },
     include: [{
-        model: models.User,
-        as: "user",
+        model: User,
+        as: "owner",
         attributes: { exclude: ["createdAt", "updatedAt", "password"] },
       },
     ],
   });
   if (course) {
-    res.json(course);
+    res.json({course});
   } else {
     res.json({message: err.message});
   } 
@@ -186,7 +186,7 @@ router.post('/courses', [
         return res.status(400).json({ errors: errorMessages });
     }
 
-  const course = await models.Course.create({
+  const course = await Course.create({
     userId: req.body.userId,
     title: req.body.title,
     description: req.body.description,
@@ -212,7 +212,7 @@ router.put('/courses/:id', [
         // Return the validation errors to the client.
         return res.status(400).json({ errors: errorMessages });
     }
-    const course = await models.Course.findByPk(req.params.id);
+    const course = await Course.findByPk(req.params.id);
     const user = req.currentUser;
   
     if (course.userId === user.id) {
