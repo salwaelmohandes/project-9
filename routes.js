@@ -142,7 +142,7 @@ router.get('/courses', asyncHandler(async (req, res) => {
       include: [{
           model: models.User,
           as: "user",
-          attributes: { exclude: ["createdAt", "updatedAt"] },
+          attributes: { exclude: ["createdAt", "updatedAt", "password"] },
         },
       ],
     });
@@ -154,12 +154,12 @@ router.get('/courses', asyncHandler(async (req, res) => {
 }));
 
 router.get('/courses/:id', asyncHandler(async (req, res) => {
-  const course = await models.Course.findOne({
+  const course = await models.Course.findByPK(req.params.id, {
     attributes: { exclude: ["createdAt", "updatedAt"] },
     include: [{
         model: models.User,
         as: "user",
-        attributes: { exclude: ["createdAt", "updatedAt"] },
+        attributes: { exclude: ["createdAt", "updatedAt", "password"] },
       },
     ],
   });
@@ -193,7 +193,7 @@ router.post('/courses', [
     estimatedTime: req.body.estimatedTime,
     materialsNeeded: req.body.materialsNeeded,
   });
-  res.location('/courses/:id')
+  res.location("/courses/" + course.id)
   res.status(201).end();  
 }));
 
@@ -212,12 +212,11 @@ router.put('/courses/:id', [
         // Return the validation errors to the client.
         return res.status(400).json({ errors: errorMessages });
     }
+    const course = await models.Course.findByPk(req.params.id);
     const user = req.currentUser;
-    const course = await models.Course.findOne({where: { userId : user.id }});
-    
+  
     if (course.userId === user.id) {
-      const course = await models.Course.update({
-        userId: req.body.userId,
+      await models.Course.update({
         title: req.body.title,
         description: req.body.description,
         estimatedTime: req.body.estimatedTime,
