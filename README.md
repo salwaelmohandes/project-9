@@ -1,6 +1,6 @@
 
 # Full Stack JavaScript Techdegree v2 - REST API Project
-
+this project is for a REST API backed by a SQL table
 ## Getting Started
 
 To get up and running with this project, run the following commands from the root of the folder that contains this README file.
